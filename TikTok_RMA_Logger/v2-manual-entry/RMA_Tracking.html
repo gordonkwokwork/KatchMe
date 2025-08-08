@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMA Tracking Scanner</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.2), 0 15px 30px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .scan-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .scan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .scan-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.loading {
+            background: #e2f3ff;
+            color: #0c5460;
+            border: 1px solid #b8daff;
+        }
+        
+        .recent-scans {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .recent-scans h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .scan-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            font-size: 14px;
+            gap: 10px;
+        }
+        
+        .scan-item-left {
+            flex: 1;
+            min-width: 0;
+            text-align: left; /* Ensure left alignment */
+        }
+        
+        .scan-item-right {
+            flex-shrink: 0;
+            text-align: right;
+            white-space: nowrap;
+        }
+        
+        .scan-item .tracking {
+            font-weight: 600;
+            color: #333;
+            word-break: break-all;
+            line-height: 1.3;
+            margin-bottom: 2px;
+            text-align: left; /* Force tracking number to left */
+        }
+        
+        .scan-item .details {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .scan-item-left .details {
+            text-align: left; /* Force user name to left */
+        }
+        
+        .overlay-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #d4edda;
+            color: #155724;
+            padding: 20px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none;
+            animation: fadeInOut 3s ease-in-out;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 25px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 RMA Tracking</h1>
+        </div>
+        
+        <form id="trackingForm">
+            <div class="form-group">
+                <label for="userName">Select User</label>
+                <select id="userName" required>
+                    <option value="">Loading users...</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="trackingNumber">Tracking Number</label>
+                <input type="text" id="trackingNumber" placeholder="Scan or enter tracking number" required>
+            </div>
+            
+            <button type="submit" class="scan-button" id="submitBtn">
+                Submit
+            </button>
+        </form>
+        
+        <div id="status" class="status"></div>
+        
+        <div class="recent-scans">
+            <h3>Recent Scans</h3>
+            <div id="recentScans">
+                <div class="scan-item">
+                    <span>No recent scans</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay success message -->
+    <div id="overlayMessage" class="overlay-message">
+        ✅ Tracking number logged successfully!
+    </div>
+
+    <script>
+        const SPREADSHEET_ID = 'PLACE SPREADSHEET_ID';
+        const API_KEY = 'PLACE API_KEY';
+        
+        let recentScans = JSON.parse(localStorage.getItem('recentScans') || '[]');
+        
+        // Load users from Google Sheet
+        async function loadUsers() {
+            console.log('Starting to load users from sheet...');
+            
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Name!A:A?key=${API_KEY}`;
+                console.log('Fetching data from:', url);
+                
+                const fetchResponse = await fetch(url);
+                console.log('Response status:', fetchResponse.status);
+                
+                if (!fetchResponse.ok) {
+                    throw new Error(`HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`);
+                }
+                
+                const data = await fetchResponse.json();
+                console.log('Received data:', data);
+                
+                const userSelect = document.getElementById('userName');
+                userSelect.innerHTML = '<option value="">Select a user...</option>';
+                
+                if (data.values && data.values.length > 1) {
+                    console.log('Loading', data.values.length - 1, 'users');
+                    
+                    for (let i = 1; i < data.values.length; i++) {
+                        if (data.values[i][0] && data.values[i][0].trim()) {
+                            const option = document.createElement('option');
+                            option.value = data.values[i][0].trim();
+                            option.textContent = data.values[i][0].trim();
+                            userSelect.appendChild(option);
+                            console.log('Added user:', data.values[i][0].trim());
+                        }
+                    }
+                    
+                    // No status message needed - users loaded silently
+                } else if (data.values && data.values.length === 1) {
+                    userSelect.innerHTML = '<option value="">Only header row found - no users</option>';
+                    showStatus('⚠️ Only header row found. Please add user names in column A starting from row 2', 'error');
+                } else {
+                    userSelect.innerHTML = '<option value="">No data found</option>';
+                    showStatus('⚠️ No data found in Name sheet', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                const userSelect = document.getElementById('userName');
+                userSelect.innerHTML = '<option value="">Error loading users</option>';
+                
+                let errorMessage = 'Error loading users: ';
+                if (error.message.includes('404')) {
+                    errorMessage += 'Sheet not found. Check if "Name" sheet exists.';
+                } else if (error.message.includes('403')) {
+                    errorMessage += 'Permission denied. Make sure sheet is set to "Anyone with link can edit".';
+                } else if (error.message.includes('400')) {
+                    errorMessage += 'Bad request. Check API key and sheet ID.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                showStatus(errorMessage, 'error');
+            }
+        }
+        
+        // Show overlay success message
+        function showOverlayMessage() {
+            const overlay = document.getElementById('overlayMessage');
+            overlay.style.display = 'block';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // Add to recent scans
+        function addToRecentScans(trackingNumber, userName) {
+            const now = new Date();
+            const scan = {
+                trackingNumber,
+                userName,
+                date: now.toLocaleDateString(),
+                time: now.toLocaleTimeString()
+            };
+            
+            recentScans.unshift(scan);
+            if (recentScans.length > 5) recentScans.pop();
+            
+            localStorage.setItem('recentScans', JSON.stringify(recentScans));
+            updateRecentScansDisplay();
+        }
+        
+        // Update recent scans display
+        function updateRecentScansDisplay() {
+            const container = document.getElementById('recentScans');
+            
+            if (recentScans.length === 0) {
+                container.innerHTML = '<div class="scan-item"><span>No recent scans</span></div>';
+                return;
+            }
+            
+            container.innerHTML = recentScans.map(scan => `
+                <div class="scan-item">
+                    <div class="scan-item-left">
+                        <div class="tracking">${scan.trackingNumber}</div>
+                        <div class="details">${scan.userName}</div>
+                    </div>
+                    <div class="scan-item-right">
+                        <div class="details">${scan.date}</div>
+                        <div class="details">${scan.time}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Submit tracking data
+        async function submitTracking(trackingNumber, userName) {
+            const now = new Date();
+            const date = now.toLocaleDateString();
+            const time = now.toLocaleTimeString();
+            
+            try {
+                console.log('Attempting to log data via Apps Script');
+                
+                // Create form data instead of JSON
+                const formData = new FormData();
+                formData.append('trackingNumber', trackingNumber);
+                formData.append('userName', userName);
+                formData.append('date', date);
+                formData.append('time', time);
+                
+                const submitResponse = await fetch('https://script.google.com/macros/s/AKfycbyNYfGGFS_5V2HIO7V6pUHiyH6dT-iL7q6yfMaRQJwvLyXKU-GVwTBBBZY231HjiDwIfw/exec', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('Apps Script response received');
+                
+                // Show overlay success message instead of status
+                showOverlayMessage();
+                addToRecentScans(trackingNumber, userName);
+                document.getElementById('trackingNumber').value = '';
+                document.getElementById('trackingNumber').focus();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`❌ Error logging: ${error.message}`, 'error');
+            }
+        }
+        
+        // Form submission
+        document.getElementById('trackingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const trackingNumber = document.getElementById('trackingNumber').value.trim();
+            const userName = document.getElementById('userName').value;
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (!trackingNumber || !userName) {
+                showStatus('Please fill in all fields', 'error');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '🔄 Loading...';
+            
+            await submitTracking(trackingNumber, userName);
+            
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit';
+        });
+        
+        // Auto-focus tracking number input when user is selected
+        document.getElementById('userName').addEventListener('change', () => {
+            if (document.getElementById('userName').value) {
+                document.getElementById('trackingNumber').focus();
+            }
+        });
+        
+        // Enter key support for quick scanning
+        document.getElementById('trackingNumber').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && document.getElementById('userName').value) {
+                document.getElementById('trackingForm').dispatchEvent(new Event('submit'));
+            }
+        });
+        
+        // Initialize
+        console.log('Initializing application...');
+        loadUsers();
+        updateRecentScansDisplay();
+        
+        // Auto-focus first empty field
+        setTimeout(() => {
+            const userName = document.getElementById('userName');
+            const trackingNumber = document.getElementById('trackingNumber');
+            
+            if (!userName.value) {
+                userName.focus();
+            } else {
+                trackingNumber.focus();
+            }
+        }, 100);
+    </script>
+</body>
+</html>

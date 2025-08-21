@@ -156,7 +156,7 @@
         .scan-item-left {
             flex: 1;
             min-width: 0;
-            text-align: left; /* Ensure left alignment */
+            text-align: left;
         }
         
         .scan-item-right {
@@ -171,7 +171,7 @@
             word-break: break-all;
             line-height: 1.3;
             margin-bottom: 2px;
-            text-align: left; /* Force tracking number to left */
+            text-align: left;
         }
         
         .scan-item .details {
@@ -180,7 +180,7 @@
         }
         
         .scan-item-left .details {
-            text-align: left; /* Force user name to left */
+            text-align: left;
         }
         
         .overlay-message {
@@ -260,10 +260,26 @@
     </div>
 
     <script>
-        const SPREADSHEET_ID = 'PLACE SPREADSHEET_ID';
-        const API_KEY = 'PLACE API_KEY';
+        const SPREADSHEET_ID = '1yL7c8V47u1GMvSH9YemVmbFB7IF2Q3BHWKtmgSy4Ugg';
+        const API_KEY = 'AIzaSyDzwyB1ejhoMQuhybUt2bETydrfHu7o2vU';
         
         let recentScans = JSON.parse(localStorage.getItem('recentScans') || '[]');
+        
+        // Format date consistently as DD/MM/YYYY
+        function formatDateDDMMYYYY(date) {
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+        
+        // Format time consistently as HH:MM:SS
+        function formatTime24Hour(date) {
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
         
         // Load users from Google Sheet
         async function loadUsers() {
@@ -298,8 +314,6 @@
                             console.log('Added user:', data.values[i][0].trim());
                         }
                     }
-                    
-                    // No status message needed - users loaded silently
                 } else if (data.values && data.values.length === 1) {
                     userSelect.innerHTML = '<option value="">Only header row found - no users</option>';
                     showStatus('⚠️ Only header row found. Please add user names in column A starting from row 2', 'error');
@@ -356,8 +370,8 @@
             const scan = {
                 trackingNumber,
                 userName,
-                date: now.toLocaleDateString(),
-                time: now.toLocaleTimeString()
+                date: formatDateDDMMYYYY(now),
+                time: formatTime24Hour(now)
             };
             
             recentScans.unshift(scan);
@@ -393,11 +407,12 @@
         // Submit tracking data
         async function submitTracking(trackingNumber, userName) {
             const now = new Date();
-            const date = now.toLocaleDateString();
-            const time = now.toLocaleTimeString();
+            const date = formatDateDDMMYYYY(now);
+            const time = formatTime24Hour(now);
             
             try {
                 console.log('Attempting to log data via Apps Script');
+                console.log('Date format:', date, 'Time format:', time);
                 
                 // Create form data instead of JSON
                 const formData = new FormData();
